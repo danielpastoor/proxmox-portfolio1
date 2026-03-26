@@ -47,60 +47,59 @@ for i in $(seq 1 $AANTAL); do
     # Container starten
     pct start $CTID
     echo "  Container ${CTID} gestart — even wachten..."
+    
     sleep 8
+
+    # === WORDPRESS INSTALLEREN ===
+    echo "  WordPress installeren in container ${CTID}..."
+
+    pct exec $CTID -- bash << WPINSTALL
+        export DEBIAN_FRONTEND=noninteractive
+
+        apt update -q
+        apt install -y -q apache2 php php-mysql php-curl php-gd php-mbstring \
+            php-xml php-xmlrpc php-zip mariadb-server wget unzip
+
+        systemctl start mariadb
+        mysql -e "CREATE DATABASE wordpress DEFAULT CHARACTER SET utf8mb4;"
+        mysql -e "CREATE USER 'wpuser'@'localhost' IDENTIFIED BY '${WP_DB_PASS}';"
+        mysql -e "GRANT ALL ON wordpress.* TO 'wpuser'@'localhost';"
+        mysql -e "FLUSH PRIVILEGES;"
+
+        wget -q -O /tmp/wp.tar.gz https://wordpress.org/latest.tar.gz
+        tar -xzf /tmp/wp.tar.gz -C /var/www/html/
+        chown -R www-data:www-data /var/www/html/wordpress
+
+        cp /var/www/html/wordpress/wp-config-sample.php \
+        /var/www/html/wordpress/wp-config.php
+
+        sed -i 's/database_name_here/wordpress/' /var/www/html/wordpress/wp-config.php
+        sed -i 's/username_here/wpuser/' /var/www/html/wordpress/wp-config.php
+        sed -i "s/password_here/${WP_DB_PASS}/" /var/www/html/wordpress/wp-config.php
+
+        cat > /etc/apache2/sites-available/wordpress.conf << 'EOF'
+        <VirtualHost *:80>
+            DocumentRoot /var/www/html/wordpress
+            <Directory /var/www/html/wordpress>
+                AllowOverride All
+                Require all granted
+            </Directory>
+        </VirtualHost>
+        EOF
+
+        a2ensite wordpress.conf
+        a2enmod rewrite
+        a2dissite 000-default.conf
+        systemctl restart apache2
+        systemctl enable apache2 mariadb
+
+        echo 'WordPress klaar in container!'
+    WPINSTALL
+
+    echo "  WordPress geinstalleerd in ${CTID}"
 
 done
 
 echo ''
 echo 'Alle containers aangemaakt!'
 pct list
-
-sleep 8
-
-# === WORDPRESS INSTALLEREN ===
-echo "  WordPress installeren in container ${CTID}..."
-
-pct exec $CTID -- bash << WPINSTALL
-    export DEBIAN_FRONTEND=noninteractive
-
-    apt update -q
-    apt install -y -q apache2 php php-mysql php-curl php-gd php-mbstring \
-        php-xml php-xmlrpc php-zip mariadb-server wget unzip
-
-    systemctl start mariadb
-    mysql -e "CREATE DATABASE wordpress DEFAULT CHARACTER SET utf8mb4;"
-    mysql -e "CREATE USER 'wpuser'@'localhost' IDENTIFIED BY '${WP_DB_PASS}';"
-    mysql -e "GRANT ALL ON wordpress.* TO 'wpuser'@'localhost';"
-    mysql -e "FLUSH PRIVILEGES;"
-
-    wget -q -O /tmp/wp.tar.gz https://wordpress.org/latest.tar.gz
-    tar -xzf /tmp/wp.tar.gz -C /var/www/html/
-    chown -R www-data:www-data /var/www/html/wordpress
-
-    cp /var/www/html/wordpress/wp-config-sample.php \
-    /var/www/html/wordpress/wp-config.php
-
-    sed -i 's/database_name_here/wordpress/' /var/www/html/wordpress/wp-config.php
-    sed -i 's/username_here/wpuser/' /var/www/html/wordpress/wp-config.php
-    sed -i "s/password_here/${WP_DB_PASS}/" /var/www/html/wordpress/wp-config.php
-
-    cat > /etc/apache2/sites-available/wordpress.conf << 'EOF'
-    <VirtualHost *:80>
-        DocumentRoot /var/www/html/wordpress
-        <Directory /var/www/html/wordpress>
-            AllowOverride All
-            Require all granted
-        </Directory>
-    </VirtualHost>
-    EOF
-
-    a2ensite wordpress.conf
-    a2enmod rewrite
-    a2dissite 000-default.conf
-    systemctl restart apache2
-    systemctl enable apache2 mariadb
-
-    echo 'WordPress klaar in container!'
-WPINSTALL
-
-echo "  WordPress geinstalleerd in ${CTID}"
