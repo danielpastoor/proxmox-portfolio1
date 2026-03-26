@@ -6,7 +6,6 @@
 #       inschakelen, en systeem updaten
 # Versie: Proxmox VE 9.x
 # ============================================================
-
 echo '======================================'
 echo ' Proxmox VE 9 repository instellen'
 echo '======================================'
@@ -14,44 +13,42 @@ echo '======================================'
 echo '[1/4] Enterprise repo uitschakelen...'
 
 if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]; then
-    sed -i 's/^Types:/#Types:/g' /etc/apt/sources.list.d/pve-enterprise.sources
+    if ! grep -q 'Enabled: no' /etc/apt/sources.list.d/pve-enterprise.sources; then
+        sed -i '/^Types:/i Enabled: no' /etc/apt/sources.list.d/pve-enterprise.sources
+    fi
     echo 'pve-enterprise.sources uitgeschakeld'
-elif [ -f /etc/apt/sources.list.d/pve-enterprise.list ]; then
-    sed -i 's/^deb /#deb /' /etc/apt/sources.list.d/pve-enterprise.list
-    echo 'pve-enterprise.list uitgeschakeld'
 fi
 
 if [ -f /etc/apt/sources.list.d/ceph.sources ]; then
-    sed -i 's/^Types:/#Types:/g' /etc/apt/sources.list.d/ceph.sources
+    if ! grep -q 'Enabled: no' /etc/apt/sources.list.d/ceph.sources; then
+        sed -i '/^Types:/i Enabled: no' /etc/apt/sources.list.d/ceph.sources
+    fi
     echo 'ceph.sources uitgeschakeld'
-elif [ -f /etc/apt/sources.list.d/ceph.list ]; then
-    sed -i 's/^deb /#deb /' /etc/apt/sources.list.d/ceph.list
-    echo 'ceph.list uitgeschakeld'
 fi
 
-echo '[2/4] No-subscription repo instellen...'
+echo '[2/4] No-subscription PVE repo instellen...'
 
 PROXMOX_SOURCES='/etc/apt/sources.list.d/proxmox.sources'
 
-if ! grep -q 'pve-no-subscription' $PROXMOX_SOURCES 2>/dev/null; then
-    cat > $PROXMOX_SOURCES << 'EOF'
+if ! grep -q 'pve-no-subscription' "$PROXMOX_SOURCES" 2>/dev/null; then
+    cat > "$PROXMOX_SOURCES" << 'EOF'
 Types: deb
 URIs: http://download.proxmox.com/debian/pve
 Suites: trixie
 Components: pve-no-subscription
 Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-    echo 'proxmox.sources aangemaakt met no-subscription repo'
+    echo 'proxmox.sources aangemaakt'
 else
-    echo 'No-subscription repo bestaat al in proxmox.sources'
+    echo 'No-subscription PVE repo bestaat al'
 fi
 
 echo '[3/4] Ceph no-subscription repo instellen...'
 
 CEPH_SOURCES='/etc/apt/sources.list.d/ceph-no-subscription.sources'
 
-if ! grep -q 'ceph-squid' $CEPH_SOURCES 2>/dev/null; then
-    cat > $CEPH_SOURCES << 'EOF'
+if ! grep -q 'ceph-squid' "$CEPH_SOURCES" 2>/dev/null; then
+    cat > "$CEPH_SOURCES" << 'EOF'
 Types: deb
 URIs: http://download.proxmox.com/debian/ceph-squid
 Suites: trixie
@@ -64,10 +61,5 @@ else
 fi
 
 echo '[4/4] Systeem updaten...'
-apt update 2>&1
-apt upgrade -y 2>&1
-
-echo ''
-echo '======================================'
-echo ' Klaar! Systeem is up-to-date.'
-echo '======================================'
+apt update
+apt upgrade -y
