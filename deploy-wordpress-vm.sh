@@ -77,6 +77,8 @@ EOF
     # Wacht tot SSH beschikbaar is
     until ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=5 \
+              -o PasswordAuthentication=yes \
+              -o PubkeyAuthentication=no \
               root@${VM_IP} 'echo ok' 2>/dev/null; do
         echo "$(date) - Nog geen SSH verbinding met ${VM_IP}..."
         sleep 10
@@ -86,6 +88,8 @@ EOF
 
     # WordPress installeren via SSH
     ssh -o StrictHostKeyChecking=no \
+        -o PasswordAuthentication=yes \
+        -o PubkeyAuthentication=no \
         root@${VM_IP} << WPINSTALL
         export DEBIAN_FRONTEND=noninteractive
 
