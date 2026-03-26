@@ -16,10 +16,19 @@ VM_PASSWORD='iLn9!2dLRq8_eNhtMyLCcJ9xcy4cTq4eMKc'
 CLOUD_IMAGE='/var/lib/vz/template/iso/debian-13-cloud.qcow2'
 CLOUD_URL='https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2'
 SNIPPET_DIR='/var/lib/vz/snippets'
+SSH_KEY='/root/.ssh/id_ed25519'
 
 echo '======================================'
 echo ' WordPress VM deployment - Klant 2'
 echo '======================================'
+
+# SSH key aanmaken als die er nog niet is
+if [ ! -f "${SSH_KEY}" ]; then
+    echo 'SSH key aanmaken...'
+    ssh-keygen -t ed25519 -f "${SSH_KEY}" -N ""
+fi
+
+SSH_PUB=$(cat "${SSH_KEY}.pub")
 
 # Cloud image downloaden als die er nog niet is
 if [ ! -f $CLOUD_IMAGE ]; then
@@ -40,6 +49,7 @@ for i in $(seq 1 $AANTAL); do
     # Cloud-init user-data snippet aanmaken
     cat > ${SNIPPET_DIR}/userdata-${VMID}.yaml << EOF
 #cloud-config
+disable_root: false
 ssh_pwauth: true
 chpasswd:
   expire: false
@@ -47,9 +57,14 @@ chpasswd:
     - name: root
       password: ${VM_PASSWORD}
       type: text
+users:
+  - name: root
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${SSH_PUB}
 runcmd:
   - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+  - echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
   - systemctl restart ssh
 EOF
 
@@ -77,8 +92,7 @@ EOF
     # Wacht tot SSH beschikbaar is
     until ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=5 \
-              -o PasswordAuthentication=yes \
-              -o PubkeyAuthentication=no \
+              -i "${SSH_KEY}" \
               root@${VM_IP} 'echo ok' 2>/dev/null; do
         echo "$(date) - Nog geen SSH verbinding met ${VM_IP}..."
         sleep 10
@@ -88,8 +102,7 @@ EOF
 
     # WordPress installeren via SSH
     ssh -o StrictHostKeyChecking=no \
-        -o PasswordAuthentication=yes \
-        -o PubkeyAuthentication=no \
+        -i "${SSH_KEY}" \
         root@${VM_IP} << WPINSTALL
         export DEBIAN_FRONTEND=noninteractive
 
