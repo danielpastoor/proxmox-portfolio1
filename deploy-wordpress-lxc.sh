@@ -94,7 +94,7 @@ for i in $(seq 1 $AANTAL); do
         systemctl enable apache2 mariadb
 
         echo 'WordPress klaar in container!'
-    WPINSTALL
+WPINSTALL
 
     echo "  WordPress geinstalleerd in ${CTID}"
 
