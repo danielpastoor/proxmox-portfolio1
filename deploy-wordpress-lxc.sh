@@ -20,3 +20,37 @@ TEMPLATE='local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst'
 echo '======================================'
 echo " WordPress deployment - ${AANTAL} containers"
 echo '======================================'
+
+# === CONTAINERS AANMAKEN ===
+for i in $(seq 1 $AANTAL); do
+    CTID=$((CT_ID_START + i - 1))
+    HOSTNAME="wordpress-${i}"
+    IP="${IP_BASE}.$((IP_START + i - 1))/24"
+
+    echo ""
+    echo "--- Container ${CTID} aanmaken: ${HOSTNAME} (${IP}) ---"
+
+    # Container aanmaken met de juiste specs
+    pct create $CTID $TEMPLATE \
+        --hostname $HOSTNAME \
+        --storage $STORAGE \
+        --rootfs ${STORAGE}:30 \
+        --memory 1024 \
+        --cores 1 \
+        --net0 name=eth0,bridge=${BRIDGE},ip=${IP},gw=${GATEWAY},rate=50 \
+        --unprivileged 1 \
+        --features nesting=1 \
+        --password 'TijdelijkWW123!'
+
+    echo "  Container ${CTID} aangemaakt"
+
+    # Container starten
+    pct start $CTID
+    echo "  Container ${CTID} gestart — even wachten..."
+    sleep 8
+
+done
+
+echo ''
+echo 'Alle containers aangemaakt!'
+pct list
