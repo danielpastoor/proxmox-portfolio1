@@ -85,7 +85,7 @@ for i in $(seq 1 $AANTAL); do
                 Require all granted
             </Directory>
         </VirtualHost>
-        EOF
+EOF
 
         a2ensite wordpress.conf
         a2enmod rewrite
