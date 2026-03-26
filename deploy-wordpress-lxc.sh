@@ -40,7 +40,7 @@ for i in $(seq 1 $AANTAL); do
         --net0 name=eth0,bridge=${BRIDGE},ip=${IP},gw=${GATEWAY},rate=50 \
         --unprivileged 1 \
         --features nesting=1 \
-        --password 'TijdelijkWW123!'
+        --password 'iLn9!2dLRq8_eNhtMyLCcJ9xcy4cTq4eMKc'
 
     echo "  Container ${CTID} aangemaakt"
 
@@ -99,7 +99,7 @@ pct exec $CTID -- bash << WPINSTALL
     a2dissite 000-default.conf
     systemctl restart apache2
     systemctl enable apache2 mariadb
-    
+
     echo 'WordPress klaar in container!'
 WPINSTALL
 
