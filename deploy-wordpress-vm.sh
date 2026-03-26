@@ -4,7 +4,7 @@
 # Doel: 3x WordPress VM aanmaken
 # ============================================================
 
-STORAGE='ceph'
+STORAGE='rbd'
 BRIDGE='vmbr0'
 GATEWAY='10.24.39.1'
 IP_BASE='10.24.39'
