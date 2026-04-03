@@ -1,0 +1,21 @@
+---
+# ============================================================
+# Playbook 6: Unieke SSH gebruikers aanmaken per host
+# Vervangt: setup-ssh-users-lxc.sh + setup-ssh-users-vm.sh
+# ============================================================
+
+- name: SSH gebruikers aanmaken op LXC WordPress containers
+  hosts: lxc_wordpress
+  tags: [security, ssh, lxc]
+  vars:
+    ssh_username: "wpuser{{ groups['lxc_wordpress'].index(inventory_hostname) + 1 }}"
+  roles:
+    - role: ssh_users
+
+- name: SSH gebruikers aanmaken op WordPress VMs
+  hosts: vm_wordpress
+  tags: [security, ssh, vm]
+  vars:
+    ssh_username: "vmuser{{ groups['vm_wordpress'].index(inventory_hostname) + 1 }}"
+  roles:
+    - role: ssh_users

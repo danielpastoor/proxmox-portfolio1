@@ -1,0 +1,63 @@
+---
+# ============================================================
+# Role: ssh_users
+# Vervangt: setup-ssh-users-lxc.sh + setup-ssh-users-vm.sh
+# ============================================================
+
+- name: SSH key directory aanmaken op control node
+  ansible.builtin.file:
+    path: "{{ ssh_keys_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  run_once: true
+
+- name: ED25519 SSH key genereren voor {{ ssh_username }}
+  community.crypto.openssh_keypair:
+    path: "{{ ssh_keys_dir }}/{{ ssh_username }}"
+    type: ed25519
+    comment: "{{ ssh_username }}@{{ inventory_hostname }}"
+    mode: "0600"
+  delegate_to: localhost
+  register: ssh_key
+
+- name: Gebruiker {{ ssh_username }} aanmaken
+  ansible.builtin.user:
+    name: "{{ ssh_username }}"
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: .ssh directory aanmaken voor {{ ssh_username }}
+  ansible.builtin.file:
+    path: "/home/{{ ssh_username }}/.ssh"
+    state: directory
+    owner: "{{ ssh_username }}"
+    group: "{{ ssh_username }}"
+    mode: "0700"
+
+- name: Public key installeren voor {{ ssh_username }}
+  ansible.posix.authorized_key:
+    user: "{{ ssh_username }}"
+    key: "{{ ssh_key.public_key }}"
+    state: present
+
+- name: PasswordAuthentication uitschakelen
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication no"
+    state: present
+  notify: restart sshd
+
+- name: PermitRootLogin uitschakelen
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin no"
+    state: present
+  notify: restart sshd
+
+- name: SSH verbinding info tonen
+  ansible.builtin.debug:
+    msg: "Verbinden met: ssh -i {{ ssh_keys_dir }}/{{ ssh_username }} {{ ssh_username }}@{{ ansible_host }}"
