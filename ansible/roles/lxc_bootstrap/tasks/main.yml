@@ -18,10 +18,7 @@
   changed_when: true
 
 - name: Root SSH login toestaan voor Ansible toegang
-  ansible.builtin.shell: >
-    pct exec {{ proxmox_ctid }} -- bash -c
-    "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-     && systemctl restart ssh"
+  ansible.builtin.shell: "pct exec {{ proxmox_ctid }} -- bash -c \"sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && systemctl restart ssh\""
   delegate_to: pve1
   changed_when: true
 

@@ -15,11 +15,46 @@
   roles:
     - role: lxc_create
 
+- name: Monitoring container aanmaken op Proxmox node
+  hosts: proxmox_nodes
+  tags: [provision, lxc, monitoring]
+  tasks:
+    - name: Monitoring LXC container aanmaken (CT {{ monitoring.ct_id }})
+      community.proxmox.proxmox:
+        api_host: "localhost"
+        api_user: "root@pam"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ ansible_hostname }}"
+        vmid: "{{ monitoring.ct_id }}"
+        hostname: "netdata-parent"
+        ostemplate: "{{ proxmox.lxc_template }}"
+        storage: "{{ proxmox.storage }}"
+        disk: "{{ lxc.disk_size }}"
+        memory: 512
+        cores: 1
+        netif:
+          net0: "name=eth0,bridge={{ network.bridge }},ip={{ monitoring.ip }}/{{ network.subnet_prefix }},gw={{ network.gateway }}"
+        unprivileged: true
+        features:
+          - nesting=1
+        password: "{{ lxc_root_password }}"
+        state: present
+        timeout: 300
+
+    - name: Monitoring container starten
+      community.proxmox.proxmox:
+        api_host: "localhost"
+        api_user: "root@pam"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ ansible_hostname }}"
+        vmid: "{{ monitoring.ct_id }}"
+        state: started
+
 - name: Per-container firewall regels instellen
   hosts: proxmox_nodes
   tags: [provision, lxc, firewall]
   tasks:
-    - name: Firewall regels schrijven voor LXC container {{ item.ctid }}
+    - name: Firewall regels schrijven voor WordPress containers
       ansible.builtin.shell: |
         cat > /etc/pve/firewall/{{ item.ctid }}.fw << 'EOF'
         [OPTIONS]
@@ -39,6 +74,24 @@
       loop: "{{ lxc_containers }}"
       loop_control:
         label: "Container {{ item.ctid }} ({{ item.hostname }})"
+      changed_when: true
+
+    - name: Firewall regels schrijven voor monitoring container
+      ansible.builtin.shell: |
+        cat > /etc/pve/firewall/{{ monitoring.ct_id }}.fw << 'EOF'
+        [OPTIONS]
+        enable: 1
+        dhcp: 1
+        macfilter: 0
+        ndp: 1
+        policy_in: DROP
+        policy_out: ACCEPT
+
+        [RULES]
+        IN ACCEPT -p tcp --dport 22 -log nolog
+        IN ACCEPT -p tcp --dport 19999 -log nolog
+        IN ACCEPT -p icmp -log nolog
+        EOF
       changed_when: true
 
 - name: SSH toegang bootstrappen in LXC containers (via pct exec)
