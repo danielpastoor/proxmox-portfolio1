@@ -1,0 +1,98 @@
+---
+# ============================================================
+# Role: wordpress
+# Vervangt: WordPress install deel uit deploy-wordpress-lxc.sh
+#           en deploy-wordpress-vm.sh
+# ============================================================
+
+- name: LAMP paketten installeren
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - php
+      - php-mysql
+      - php-curl
+      - php-gd
+      - php-mbstring
+      - php-xml
+      - php-xmlrpc
+      - php-zip
+      - mariadb-server
+      - wget
+      - unzip
+    state: present
+    update_cache: true
+
+- name: MariaDB starten en inschakelen
+  ansible.builtin.service:
+    name: mariadb
+    state: started
+    enabled: true
+
+- name: WordPress database aanmaken
+  community.general.mysql_db:
+    name: "{{ wordpress.db_name }}"
+    state: present
+    encoding: utf8mb4
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: WordPress database gebruiker aanmaken
+  community.general.mysql_user:
+    name: "{{ wordpress.db_user }}"
+    password: "{{ wordpress.db_password }}"
+    priv: "{{ wordpress.db_name }}.*:ALL"
+    host: localhost
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+
+- name: WordPress downloaden
+  ansible.builtin.get_url:
+    url: https://wordpress.org/latest.tar.gz
+    dest: /tmp/wp.tar.gz
+    mode: "0644"
+
+- name: WordPress uitpakken
+  ansible.builtin.unarchive:
+    src: /tmp/wp.tar.gz
+    dest: /var/www/html/
+    remote_src: true
+    creates: "{{ wordpress.install_dir }}"
+
+- name: WordPress bestandseigenaar instellen
+  ansible.builtin.file:
+    path: "{{ wordpress.install_dir }}"
+    owner: www-data
+    group: www-data
+    recurse: true
+
+- name: wp-config.php aanmaken
+  ansible.builtin.template:
+    src: wp-config.php.j2
+    dest: "{{ wordpress.install_dir }}/wp-config.php"
+    owner: www-data
+    group: www-data
+    mode: "0640"
+
+- name: Apache VirtualHost configuratie deployen
+  ansible.builtin.template:
+    src: wordpress.conf.j2
+    dest: /etc/apache2/sites-available/wordpress.conf
+    mode: "0644"
+  notify: restart apache2
+
+- name: WordPress site inschakelen en modules activeren
+  ansible.builtin.shell: |
+    a2ensite wordpress.conf
+    a2enmod rewrite
+    a2dissite 000-default.conf
+  notify: restart apache2
+  changed_when: true
+
+- name: Apache en MariaDB inschakelen bij opstarten
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: true
+  loop:
+    - apache2
+    - mariadb

@@ -1,0 +1,18 @@
+---
+# ============================================================
+# Playbook 4: WordPress deployen op LXC containers en VMs
+# Vervangt: WordPress install deel uit deploy-wordpress-lxc.sh
+#           en deploy-wordpress-vm.sh
+# ============================================================
+
+- name: WordPress deployen op LXC containers
+  hosts: lxc_wordpress
+  tags: [wordpress, lxc]
+  roles:
+    - role: wordpress
+
+- name: WordPress deployen op VMs
+  hosts: vm_wordpress
+  tags: [wordpress, vm]
+  roles:
+    - role: wordpress

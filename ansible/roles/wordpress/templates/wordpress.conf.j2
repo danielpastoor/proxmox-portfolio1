@@ -1,0 +1,9 @@
+<VirtualHost *:80>
+    DocumentRoot {{ wordpress.install_dir }}
+    <Directory {{ wordpress.install_dir }}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/wordpress_error.log
+    CustomLog ${APACHE_LOG_DIR}/wordpress_access.log combined
+</VirtualHost>
