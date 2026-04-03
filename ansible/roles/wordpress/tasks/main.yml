@@ -11,6 +11,7 @@
       - apache2
       - php
       - php-mysql
+      - python3-pymysql
       - php-curl
       - php-gd
       - php-mbstring
