@@ -1,0 +1,29 @@
+---
+# ============================================================
+# Role: proxmox_ha
+# Vervangt: install-HA-vm.sh
+# ============================================================
+
+- name: HA status ophalen
+  ansible.builtin.command: ha-manager status
+  register: ha_status
+  changed_when: false
+
+- name: VMs toevoegen aan HA manager
+  ansible.builtin.command: >
+    ha-manager add vm:{{ item.vmid }}
+    --max_restart 3
+    --max_relocate 3
+  when: "'vm:' + (item.vmid | string) not in ha_status.stdout"
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "VM {{ item.vmid }} ({{ item.hostname }})"
+
+- name: HA status tonen
+  ansible.builtin.command: ha-manager status
+  register: ha_result
+  changed_when: false
+
+- name: HA status weergeven
+  ansible.builtin.debug:
+    var: ha_result.stdout_lines

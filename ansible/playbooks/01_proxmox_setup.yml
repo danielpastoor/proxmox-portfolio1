@@ -1,0 +1,23 @@
+---
+# ============================================================
+# Playbook 1: Proxmox node inrichten
+# Vervangt: update-repos.sh, setup-firewall-lxc.sh, install-HA-vm.sh
+# ============================================================
+
+- name: APT repositories configureren op Proxmox node
+  hosts: proxmox_nodes
+  tags: [proxmox, repos]
+  roles:
+    - role: proxmox_repos
+
+- name: Proxmox firewall instellen voor cluster + containers
+  hosts: proxmox_nodes
+  tags: [proxmox, firewall]
+  roles:
+    - role: proxmox_firewall
+
+- name: High Availability configureren voor WordPress VMs
+  hosts: proxmox_nodes
+  tags: [proxmox, ha]
+  roles:
+    - role: proxmox_ha

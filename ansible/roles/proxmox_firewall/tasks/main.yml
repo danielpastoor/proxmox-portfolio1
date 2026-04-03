@@ -1,0 +1,52 @@
+---
+# ============================================================
+# Role: proxmox_firewall
+# Vervangt: setup-firewall-lxc.sh
+# ============================================================
+
+- name: Cluster firewall configuratie schrijven
+  ansible.builtin.copy:
+    dest: /etc/pve/firewall/cluster.fw
+    owner: root
+    group: www-data
+    mode: "0640"
+    content: |
+      [OPTIONS]
+      enable: 1
+      policy_in: DROP
+      policy_out: ACCEPT
+
+      [RULES]
+      # Proxmox beheer
+      IN ACCEPT -p tcp --dport 8006 -log nolog
+      IN ACCEPT -p tcp --dport 22 -log nolog
+      IN ACCEPT -p tcp --dport 3128 -log nolog
+      IN ACCEPT -p tcp --dport 5900:5999 -log nolog
+
+      # Cluster communicatie
+      IN ACCEPT -p udp --dport 5404:5405 -log nolog
+      IN ACCEPT -p tcp --dport 60000:60050 -log nolog
+
+- name: Per-container firewall regels instellen
+  ansible.builtin.copy:
+    dest: "/etc/pve/firewall/{{ item.ctid }}.fw"
+    owner: root
+    group: www-data
+    mode: "0640"
+    content: |
+      [OPTIONS]
+      enable: 1
+      dhcp: 1
+      macfilter: 0
+      ndp: 1
+      policy_in: DROP
+      policy_out: ACCEPT
+
+      [RULES]
+      IN ACCEPT -p tcp --dport 22 -log nolog
+      IN ACCEPT -p tcp --dport 80 -log nolog
+      IN ACCEPT -p tcp --dport 443 -log nolog
+      IN ACCEPT -p icmp -log nolog
+  loop: "{{ lxc_containers }}"
+  loop_control:
+    label: "Container {{ item.ctid }} ({{ item.hostname }})"
