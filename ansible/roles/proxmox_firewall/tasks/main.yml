@@ -10,6 +10,7 @@
     owner: root
     group: www-data
     mode: "0640"
+    unsafe_writes: true
     content: |
       [OPTIONS]
       enable: 1
@@ -33,6 +34,7 @@
     owner: root
     group: www-data
     mode: "0640"
+    unsafe_writes: true
     content: |
       [OPTIONS]
       enable: 1
