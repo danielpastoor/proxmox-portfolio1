@@ -1,0 +1,100 @@
+---
+# ============================================================
+# Role: vm_create
+# Vervangt: deploy-wordpress-vm.sh (het aanmaak deel)
+# ============================================================
+
+- name: SSH key aanmaken als die er nog niet is
+  community.crypto.openssh_keypair:
+    path: "{{ proxmox.ssh_key_path }}"
+    type: ed25519
+    comment: "ansible@proxmox"
+  register: proxmox_ssh_key
+
+- name: Cloud image downloaden als die er nog niet is
+  ansible.builtin.get_url:
+    url: "{{ proxmox.cloud_image_url }}"
+    dest: "{{ proxmox.cloud_image_path }}"
+    mode: "0644"
+  register: cloud_download
+  timeout: 600
+
+- name: Snippet directory aanmaken
+  ansible.builtin.file:
+    path: "{{ proxmox.snippet_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Cloud-init user-data snippet aanmaken voor VM {{ item.vmid }}
+  ansible.builtin.template:
+    src: userdata.yaml.j2
+    dest: "{{ proxmox.snippet_dir }}/userdata-{{ item.vmid }}.yaml"
+    mode: "0644"
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "userdata voor VM {{ item.vmid }}"
+
+- name: VM {{ item.hostname }} aanmaken (VM {{ item.vmid }})
+  ansible.builtin.shell: >
+    qm create {{ item.vmid }}
+    --name {{ item.hostname }}
+    --memory {{ vm.memory }}
+    --cores {{ vm.cores }}
+    --net0 virtio,bridge={{ network.bridge }},rate={{ vm.network_rate }}
+    --serial0 socket --vga serial0 --agent enabled=1
+  args:
+    creates: "/etc/pve/qemu-server/{{ item.vmid }}.conf"
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "VM {{ item.vmid }} aanmaken"
+
+- name: Cloud image importeren als disk voor VM {{ item.vmid }}
+  ansible.builtin.shell: >
+    qm importdisk {{ item.vmid }} {{ proxmox.cloud_image_path }} {{ proxmox.storage }}
+  register: import_result
+  changed_when: "'Successfully imported' in import_result.stdout or import_result.rc == 0"
+  failed_when: import_result.rc != 0
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "Disk importeren voor VM {{ item.vmid }}"
+
+- name: VM disk en boot configureren voor VM {{ item.vmid }}
+  ansible.builtin.shell: |
+    qm set {{ item.vmid }} --scsihw virtio-scsi-pci --scsi0 {{ proxmox.storage }}:vm-{{ item.vmid }}-disk-0
+    qm set {{ item.vmid }} --ide2 {{ proxmox.storage }}:cloudinit
+    qm set {{ item.vmid }} --boot c --bootdisk scsi0
+    qm resize {{ item.vmid }} scsi0 {{ vm.disk_size }}
+  changed_when: true
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "Boot configuratie VM {{ item.vmid }}"
+
+- name: Cloud-init netwerk en snippet instellen voor VM {{ item.vmid }}
+  ansible.builtin.shell: |
+    qm set {{ item.vmid }} --ipconfig0 ip={{ item.ip }}/{{ network.subnet_prefix }},gw={{ network.gateway }}
+    qm set {{ item.vmid }} --ciuser root --cipassword {{ vm_root_password }}
+    qm set {{ item.vmid }} --nameserver {{ network.dns }}
+    qm set {{ item.vmid }} --cicustom "user=local:snippets/userdata-{{ item.vmid }}.yaml"
+  changed_when: true
+  no_log: true
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "Cloud-init VM {{ item.vmid }}"
+
+- name: VMs starten
+  ansible.builtin.shell: qm start {{ item.vmid }}
+  changed_when: true
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "VM {{ item.vmid }} starten"
+
+- name: Wachten tot SSH beschikbaar is op VM {{ item.ip }}
+  ansible.builtin.wait_for:
+    host: "{{ item.ip }}"
+    port: 22
+    timeout: 300
+    delay: 10
+  loop: "{{ vm_containers }}"
+  loop_control:
+    label: "Wachten op SSH VM {{ item.vmid }} ({{ item.ip }})"
+  delegate_to: localhost

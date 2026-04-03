@@ -1,0 +1,11 @@
+---
+# ============================================================
+# Playbook 3: VMs aanmaken met cloud-init
+# Vervangt: deploy-wordpress-vm.sh (aanmaak deel)
+# ============================================================
+
+- name: WordPress VMs aanmaken op Proxmox node
+  hosts: proxmox_nodes
+  tags: [provision, vm, create]
+  roles:
+    - role: vm_create
