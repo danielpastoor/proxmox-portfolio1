@@ -14,19 +14,8 @@
     content: |
       [OPTIONS]
       enable: 1
-      policy_in: DROP
+      policy_in: ACCEPT
       policy_out: ACCEPT
-
-      [RULES]
-      # Proxmox beheer
-      IN ACCEPT -p tcp --dport 8006 -log nolog
-      IN ACCEPT -p tcp --dport 22 -log nolog
-      IN ACCEPT -p tcp --dport 3128 -log nolog
-      IN ACCEPT -p tcp --dport 5900:5999 -log nolog
-
-      # Cluster communicatie
-      IN ACCEPT -p udp --dport 5404:5405 -log nolog
-      IN ACCEPT -p tcp --dport 60000:60050 -log nolog
 
 - name: Per-container firewall regels instellen
   ansible.builtin.copy:
