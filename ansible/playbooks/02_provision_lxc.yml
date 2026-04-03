@@ -7,6 +7,11 @@
 - name: LXC containers aanmaken op Proxmox node
   hosts: proxmox_nodes
   tags: [provision, lxc, create]
+  pre_tasks:
+    - name: proxmoxer Python library installeren
+      ansible.builtin.apt:
+        name: python3-proxmoxer
+        state: present
   roles:
     - role: lxc_create
 
