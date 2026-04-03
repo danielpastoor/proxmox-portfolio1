@@ -1,0 +1,33 @@
+---
+# ============================================================
+# site.yml — Master playbook
+# ============================================================
+# Volledige uitrol:
+#   ansible-playbook playbooks/site.yml --ask-vault-pass
+#
+# Alleen een specifiek onderdeel uitvoeren (via tags):
+#   ansible-playbook playbooks/site.yml --tags wordpress
+#   ansible-playbook playbooks/site.yml --tags monitoring
+#   ansible-playbook playbooks/site.yml --tags "provision,lxc"
+#
+# Dry-run (geen wijzigingen):
+#   ansible-playbook playbooks/site.yml --check --ask-vault-pass
+# ============================================================
+
+- name: "Fase 1 — Proxmox node inrichten (repos, firewall, HA)"
+  import_playbook: 01_proxmox_setup.yml
+
+- name: "Fase 2 — LXC containers aanmaken + SSH bootstrap"
+  import_playbook: 02_provision_lxc.yml
+
+- name: "Fase 3 — VMs aanmaken met cloud-init"
+  import_playbook: 03_provision_vm.yml
+
+- name: "Fase 4 — WordPress deployen op LXC + VMs"
+  import_playbook: 04_deploy_wordpress.yml
+
+- name: "Fase 5 — Monitoring (Netdata) deployen"
+  import_playbook: 05_setup_monitoring.yml
+
+- name: "Fase 6 — SSH gebruikers aanmaken"
+  import_playbook: 06_setup_ssh_users.yml
