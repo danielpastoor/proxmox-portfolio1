@@ -4,6 +4,12 @@
 # Vervangt: pct create deel van deploy-wordpress-lxc.sh
 # ============================================================
 
+- name: LXC template downloaden als die er nog niet is
+  ansible.builtin.command: >
+    pveam download local {{ proxmox.lxc_template | regex_replace('^local:vztmpl/', '') }}
+  args:
+    creates: "/var/lib/vz/template/cache/{{ proxmox.lxc_template | regex_replace('^local:vztmpl/', '') }}"
+
 - name: LXC container {{ item.hostname }} aanmaken (CT {{ item.ctid }})
   community.proxmox.proxmox:
     api_host: "localhost"
@@ -24,9 +30,11 @@
       - nesting=1
     password: "{{ lxc_root_password }}"
     state: present
+    timeout: 300
   loop: "{{ lxc_containers }}"
   loop_control:
     label: "CT {{ item.ctid }} — {{ item.hostname }}"
+    pause: 5
 
 - name: LXC containers starten
   community.proxmox.proxmox:
