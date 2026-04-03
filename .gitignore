@@ -4,3 +4,4 @@ ssh-keys/*
 ansible/files/ssh-keys/
 ansible/inventories/proxmox/group_vars/vault.yml
 *.retry
+ansible/inventories/proxmox/group_vars/all/vault.yml
