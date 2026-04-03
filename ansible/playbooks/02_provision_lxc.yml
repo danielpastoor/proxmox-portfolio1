@@ -15,6 +15,35 @@
   roles:
     - role: lxc_create
 
+- name: Per-container firewall regels instellen
+  hosts: proxmox_nodes
+  tags: [provision, lxc, firewall]
+  tasks:
+    - name: Firewall regels schrijven voor LXC container {{ item.ctid }}
+      ansible.builtin.copy:
+        dest: "/etc/pve/firewall/{{ item.ctid }}.fw"
+        owner: root
+        group: www-data
+        mode: "0640"
+        unsafe_writes: true
+        content: |
+          [OPTIONS]
+          enable: 1
+          dhcp: 1
+          macfilter: 0
+          ndp: 1
+          policy_in: DROP
+          policy_out: ACCEPT
+
+          [RULES]
+          IN ACCEPT -p tcp --dport 22 -log nolog
+          IN ACCEPT -p tcp --dport 80 -log nolog
+          IN ACCEPT -p tcp --dport 443 -log nolog
+          IN ACCEPT -p icmp -log nolog
+      loop: "{{ lxc_containers }}"
+      loop_control:
+        label: "Container {{ item.ctid }} ({{ item.hostname }})"
+
 - name: SSH toegang bootstrappen in LXC containers (via pct exec)
   hosts: lxc_wordpress, monitoring
   gather_facts: false

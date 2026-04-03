@@ -17,27 +17,3 @@
       policy_in: ACCEPT
       policy_out: ACCEPT
 
-- name: Per-container firewall regels instellen
-  ansible.builtin.copy:
-    dest: "/etc/pve/firewall/{{ item.ctid }}.fw"
-    owner: root
-    group: www-data
-    mode: "0640"
-    unsafe_writes: true
-    content: |
-      [OPTIONS]
-      enable: 1
-      dhcp: 1
-      macfilter: 0
-      ndp: 1
-      policy_in: DROP
-      policy_out: ACCEPT
-
-      [RULES]
-      IN ACCEPT -p tcp --dport 22 -log nolog
-      IN ACCEPT -p tcp --dport 80 -log nolog
-      IN ACCEPT -p tcp --dport 443 -log nolog
-      IN ACCEPT -p icmp -log nolog
-  loop: "{{ lxc_containers }}"
-  loop_control:
-    label: "Container {{ item.ctid }} ({{ item.hostname }})"
