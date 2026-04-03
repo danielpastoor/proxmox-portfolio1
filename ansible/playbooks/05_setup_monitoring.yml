@@ -1,0 +1,32 @@
+---
+# ============================================================
+# Playbook 5: Netdata monitoring deployen
+# Vervangt: setup-monitoring-server.sh
+#           install-netdata-child-lxc.sh
+#           install-netdata-child-vm.sh
+#           install-netdata-node.sh
+# ============================================================
+
+- name: Netdata parent installeren op monitoring server
+  hosts: monitoring
+  tags: [monitoring, netdata, parent]
+  roles:
+    - role: netdata_parent
+
+- name: Netdata child installeren op LXC WordPress containers
+  hosts: lxc_wordpress
+  tags: [monitoring, netdata, lxc]
+  roles:
+    - role: netdata_child
+
+- name: Netdata child installeren op WordPress VMs
+  hosts: vm_wordpress
+  tags: [monitoring, netdata, vm]
+  roles:
+    - role: netdata_child
+
+- name: Netdata child installeren op Proxmox hypervisor nodes
+  hosts: proxmox_nodes
+  tags: [monitoring, netdata, nodes]
+  roles:
+    - role: netdata_child

@@ -1,0 +1,43 @@
+---
+# ============================================================
+# Role: netdata_child
+# Vervangt: install-netdata-child-lxc.sh
+#           install-netdata-child-vm.sh
+#           install-netdata-node.sh
+# ============================================================
+
+- name: Benodigde pakketten installeren
+  ansible.builtin.apt:
+    name:
+      - wget
+      - curl
+    state: present
+    update_cache: true
+
+- name: Netdata kickstart script downloaden
+  ansible.builtin.get_url:
+    url: https://my-netdata.io/kickstart.sh
+    dest: /tmp/netdata-kickstart.sh
+    mode: "0755"
+
+- name: Netdata installeren
+  ansible.builtin.shell: >
+    bash /tmp/netdata-kickstart.sh
+    --non-interactive --stable-channel --disable-telemetry
+  args:
+    creates: /usr/sbin/netdata
+
+- name: Netdata stream.conf configureren (child → parent)
+  ansible.builtin.template:
+    src: stream.conf.j2
+    dest: /etc/netdata/stream.conf
+    owner: netdata
+    group: netdata
+    mode: "0640"
+  notify: restart netdata
+
+- name: Netdata inschakelen en starten
+  ansible.builtin.service:
+    name: netdata
+    state: started
+    enabled: true
