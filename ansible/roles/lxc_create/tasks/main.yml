@@ -1,0 +1,52 @@
+---
+# ============================================================
+# Role: lxc_create
+# Vervangt: pct create deel van deploy-wordpress-lxc.sh
+# ============================================================
+
+- name: LXC container {{ item.hostname }} aanmaken (CT {{ item.ctid }})
+  community.general.proxmox:
+    api_host: "localhost"
+    api_user: "root@pam"
+    api_password: "{{ lxc_root_password }}"
+    node: "{{ ansible_hostname }}"
+    vmid: "{{ item.ctid }}"
+    hostname: "{{ item.hostname }}"
+    ostemplate: "{{ proxmox.lxc_template }}"
+    storage: "{{ proxmox.storage }}"
+    disk: "{{ lxc.disk_size }}"
+    memory: "{{ lxc.memory }}"
+    cores: "{{ lxc.cores }}"
+    netif:
+      net0: "name=eth0,bridge={{ network.bridge }},ip={{ item.ip }}/{{ network.subnet_prefix }},gw={{ network.gateway }},rate={{ lxc.network_rate }}"
+    unprivileged: true
+    features:
+      - nesting=1
+    password: "{{ lxc_root_password }}"
+    state: present
+  loop: "{{ lxc_containers }}"
+  loop_control:
+    label: "CT {{ item.ctid }} — {{ item.hostname }}"
+
+- name: LXC containers starten
+  community.general.proxmox:
+    api_host: "localhost"
+    api_user: "root@pam"
+    api_password: "{{ lxc_root_password }}"
+    node: "{{ ansible_hostname }}"
+    vmid: "{{ item.ctid }}"
+    state: started
+  loop: "{{ lxc_containers }}"
+  loop_control:
+    label: "CT {{ item.ctid }} starten"
+
+- name: Wachten tot containers bereikbaar zijn via pct
+  ansible.builtin.shell: pct exec {{ item.ctid }} -- echo ok
+  register: pct_test
+  until: pct_test.rc == 0
+  retries: 12
+  delay: 5
+  changed_when: false
+  loop: "{{ lxc_containers }}"
+  loop_control:
+    label: "Wachten op CT {{ item.ctid }}"

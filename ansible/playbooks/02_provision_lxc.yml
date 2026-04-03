@@ -1,0 +1,18 @@
+---
+# ============================================================
+# Playbook 2: LXC containers aanmaken + SSH bootstrap
+# Vervangt: deploy-wordpress-lxc.sh (aanmaak deel)
+# ============================================================
+
+- name: LXC containers aanmaken op Proxmox node
+  hosts: proxmox_nodes
+  tags: [provision, lxc, create]
+  roles:
+    - role: lxc_create
+
+- name: SSH toegang bootstrappen in LXC containers (via pct exec)
+  hosts: lxc_wordpress, monitoring
+  gather_facts: false
+  tags: [provision, lxc, bootstrap]
+  roles:
+    - role: lxc_bootstrap

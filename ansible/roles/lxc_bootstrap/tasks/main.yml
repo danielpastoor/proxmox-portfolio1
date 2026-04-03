@@ -1,0 +1,42 @@
+---
+# ============================================================
+# Role: lxc_bootstrap
+# ============================================================
+
+- name: openssh-server installeren in LXC {{ proxmox_ctid }}
+  ansible.builtin.shell: >
+    pct exec {{ proxmox_ctid }} -- bash -c
+    "apt-get update -q && apt-get install -y -q openssh-server"
+  delegate_to: pve1
+  changed_when: true
+
+- name: SSH service inschakelen en starten in LXC {{ proxmox_ctid }}
+  ansible.builtin.shell: >
+    pct exec {{ proxmox_ctid }} -- bash -c
+    "systemctl enable ssh && systemctl start ssh"
+  delegate_to: pve1
+  changed_when: true
+
+- name: Root SSH login toestaan voor Ansible toegang
+  ansible.builtin.shell: >
+    pct exec {{ proxmox_ctid }} -- bash -c
+    "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+     && systemctl restart ssh"
+  delegate_to: pve1
+  changed_when: true
+
+- name: Root wachtwoord instellen in LXC {{ proxmox_ctid }}
+  ansible.builtin.shell: >
+    pct exec {{ proxmox_ctid }} -- bash -c
+    "echo 'root:{{ lxc_root_password }}' | chpasswd"
+  delegate_to: pve1
+  changed_when: true
+  no_log: true
+
+- name: Wachten tot SSH bereikbaar is in LXC {{ proxmox_ctid }}
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    timeout: 60
+    delay: 3
+  delegate_to: pve1
