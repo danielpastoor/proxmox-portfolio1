@@ -5,7 +5,7 @@
 # ============================================================
 
 - name: LXC container {{ item.hostname }} aanmaken (CT {{ item.ctid }})
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "localhost"
     api_user: "root@pam"
     api_password: "{{ lxc_root_password }}"
@@ -29,7 +29,7 @@
     label: "CT {{ item.ctid }} — {{ item.hostname }}"
 
 - name: LXC containers starten
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "localhost"
     api_user: "root@pam"
     api_password: "{{ lxc_root_password }}"
