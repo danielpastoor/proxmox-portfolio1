@@ -9,3 +9,9 @@
   tags: [provision, vm, create]
   roles:
     - role: vm_create
+
+- name: High Availability configureren voor WordPress VMs
+  hosts: proxmox_nodes
+  tags: [proxmox, ha]
+  roles:
+    - role: proxmox_ha
