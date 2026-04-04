@@ -17,6 +17,9 @@ proxmox:
   cloud_image_url: "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
   lxc_template: "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
   ssh_key_path: "/root/.ssh/id_ed25519"
+  other_nodes:
+    - "10.24.39.3"
+    - "10.24.39.4"
 
 lxc:
   ct_id_start: 200

@@ -34,6 +34,16 @@
   loop_control:
     label: "userdata voor VM {{ item.vmid }}"
 
+- name: Snippets synchroniseren naar andere Proxmox nodes
+  ansible.builtin.shell: >
+    scp -o StrictHostKeyChecking=no
+    {{ proxmox.snippet_dir }}/userdata-{{ item[0].vmid }}.yaml
+    root@{{ item[1] }}:{{ proxmox.snippet_dir }}/
+  loop: "{{ vm_containers | product(proxmox.other_nodes) | list }}"
+  loop_control:
+    label: "userdata-{{ item[0].vmid }}.yaml → {{ item[1] }}"
+  changed_when: true
+
 - name: VM {{ item.hostname }} aanmaken (VM {{ item.vmid }})
   ansible.builtin.shell: >
     qm create {{ item.vmid }}

@@ -19,6 +19,13 @@
   loop_control:
     label: "VM {{ item.vmid }} ({{ item.hostname }})"
 
+- name: Monitoring container toevoegen aan HA manager
+  ansible.builtin.command: >
+    ha-manager add ct:{{ monitoring.ct_id }}
+    --max_restart 3
+    --max_relocate 3
+  when: "'ct:' + (monitoring.ct_id | string) not in ha_status.stdout"
+
 - name: HA status tonen
   ansible.builtin.command: ha-manager status
   register: ha_result
